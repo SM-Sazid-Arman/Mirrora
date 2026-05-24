@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mirrora — Symmetry Drawing App</title>
+
+<!-- ─── SEO ──────────────────────────────────────────────────────────────── -->
+<meta name="description" content="Mirrora is a free browser-based symmetry drawing app. Create stunning 4-way mirrored artwork with touch, stylus, mouse, or trackpad — no installation required.">
+<meta name="keywords" content="symmetry drawing, mirror drawing, mandala art, drawing app, canvas art, 4-way symmetry, free drawing tool, online drawing">
+<meta name="author" content="Mirrora">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#0c0c0f">
+<link rel="canonical" href="https://mirrora.app/">
+
+<!-- ─── Open Graph ────────────────────────────────────────────────────────── -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mirrora.app/">
+<meta property="og:title" content="Mirrora — Symmetry Drawing App">
+<meta property="og:description" content="Create stunning 4-way mirrored artwork in your browser. Works with touch, stylus, mouse, and trackpad. Free and instant — no install needed.">
+<meta property="og:image" content="https://mirrora.app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="Mirrora">
+
+<!-- ─── Twitter / X Card ──────────────────────────────────────────────────── -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Mirrora — Symmetry Drawing App">
+<meta name="twitter:description" content="Create stunning 4-way mirrored artwork in your browser. Works with touch, stylus, mouse, and trackpad. Free and instant — no install needed.">
+<meta name="twitter:image" content="https://mirrora.app/og-image.png">
+<style>
+/* ─── Reset & Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --tb-h: 52px;
+  --tb-bg: rgba(12, 12, 15, 0.94);
+  --tb-border: rgba(255, 255, 255, 0.07);
+  --panel-bg: rgba(16, 16, 20, 0.98);
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --btn-hover: rgba(255, 255, 255, 0.07);
+  --btn-active: rgba(255, 255, 255, 0.13);
+  --accent: #4D9EFF;
+  --accent-glow: rgba(77, 158, 255, 0.18);
+  --accent-border: rgba(77, 158, 255, 0.5);
+  --text: rgba(255, 255, 255, 0.86);
+  --text-dim: rgba(255, 255, 255, 0.38);
+  --text-mid: rgba(255, 255, 255, 0.6);
+  --shadow-deep: 0 20px 60px rgba(0,0,0,0.75), 0 4px 16px rgba(0,0,0,0.5);
+  --radius-panel: 18px;
+  --radius-btn: 8px;
+}
+
+html, body {
+  width: 100%;
+  height: 100dvh; /* Dynamic viewport height to prevent UI clipping */
+  overflow: hidden; /* Blocks all scrollbars */
+  touch-action: none; /* Disables browser native pan/zoom gestures */
+  background: #000;
+  color: var(--text);
+  font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ─── App Shell ────────────────────────────────────────────────────────────── */
+#app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100dvh;
+}
+
+/* ─── Toolbar ──────────────────────────────────────────────────────────────── */
+#toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 0 6px;
+  height: var(--tb-h);
+  min-height: var(--tb-h);
+  flex-shrink: 0;
+  background: var(--tb-bg);
+  border-bottom: 1px solid var(--tb-border);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  position: relative;
+  z-index: 30;
+  overflow: hidden;
+}
+
+/* Logo */
+#logo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px 0 4px;
+  flex-shrink: 0;
+  margin-right: 2px;
+  height: 34px;
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+  transition: background 0.13s ease, transform 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#logo:hover { background: var(--btn-hover); }
+#logo:active { background: var(--btn-active); transform: scale(0.96); }
+
+#logo-svg { display: block; flex-shrink: 0; }
+
+#logo-wordmark {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  display: none;
+}
+
+@media (min-width: 580px) { #logo-wordmark { display: block; } }
+
+/* Separator */
+.sep {
+  width: 1px;
+  height: 20px;
+  background: var(--tb-border);
+  flex-shrink: 0;
+  margin: 0 3px;
+}
+
+.spacer { flex: 1; min-width: 2px; }
+
+/* Toolbar button */
+.tb-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 8px;
+  min-width: 34px;
+  border: none;
+  border-radius: var(--radius-btn);
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.13s ease, transform 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.tb-btn:hover { background: var(--btn-hover); }
+.tb-btn:active { background: var(--btn-active); transform: scale(0.96); }
+.tb-btn svg { display: block; flex-shrink: 0; }
+
+.tb-btn.dimmed { color: var(--text-dim); }
+.tb-btn.dimmed:hover { color: var(--text); }
+
+.tb-label { display: none; }
+
+@media (min-width: 768px) {
+  #toolbar { padding: 0 10px; gap: 2px; }
+  .tb-label { display: inline; }
+  .tb-btn { padding: 0 10px; }
+}
+
+/* Mode pill */
+.mode-pill {
+  display: flex;
+  align-items: center;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 9px;
+  padding: 3px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.mode-btn {
+  height: 26px;
+  padding: 0 9px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mode-btn:hover { color: var(--text-mid); }
+
+.mode-btn.active {
+  background: var(--accent-glow);
+  color: var(--accent);
+}
+
+@media (max-width: 380px) {
+  .mode-btn { padding: 0 6px; font-size: 10px; }
+}
+
+/* Color dot indicator */
+.color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.22);
+  flex-shrink: 0;
+  background: #fff;
+  pointer-events: none;
+}
+
+/* ─── Canvas Area ──────────────────────────────────────────────────────────── */
+#canvas-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#bg-layer {
+  position: absolute;
+  inset: 0;
+  background: #000000;
+  transition: background 0.28s ease;
+}
+
+#guide-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  touch-action: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+#guide-canvas.visible { opacity: 1; }
+
+#main-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+  background: transparent;
+}
+
+/* ─── Overlay System ───────────────────────────────────────────────────────── */
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: var(--tb-h);
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(12px) brightness(0.6);
+  -webkit-backdrop-filter: blur(12px) brightness(0.6);
+  animation: overlayIn 0.16s ease;
+}
+
+.overlay.open { display: flex; }
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-panel);
+  padding: 20px;
+  width: min(400px, calc(100vw - 20px));
+  margin-top: 8px;
+  box-shadow: var(--shadow-deep);
+  animation: panelSlide 0.2s cubic-bezier(0.34, 1.2, 0.64, 1);
+  max-height: calc(100dvh - var(--tb-h) - 28px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@keyframes panelSlide {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Panel scrollbar */
+.panel::-webkit-scrollbar { width: 4px; }
+.panel::-webkit-scrollbar-track { background: transparent; }
+.panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+
+.panel-heading {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+}
+
+/* ─── Brush Size Panel ─────────────────────────────────────────────────────── */
+.brush-grid {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.brush-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 6px 12px;
+  border-radius: 12px;
+  border: 1.5px solid transparent;
+  background: rgba(255,255,255,0.04);
+  cursor: pointer;
+  transition: background 0.13s, border-color 0.13s;
+  min-width: 0;
+}
+
+.brush-item:hover { background: rgba(255,255,255,0.08); }
+
+.brush-item.active {
+  border-color: var(--accent-border);
+  background: var(--accent-glow);
+}
+
+.brush-dot-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.brush-circle {
+  border-radius: 50%;
+  background: rgba(255,255,255,0.82);
+  flex-shrink: 0;
+}
+
+.brush-item.active .brush-circle {
+  background: #fff;
+}
+
+.brush-px {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+.brush-item.active .brush-px { color: var(--accent); }
+
+/* ─── Color Panel ──────────────────────────────────────────────────────────── */
+.color-section { margin-bottom: 22px; }
+.color-section:last-child { margin-bottom: 0; }
+
+.color-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+
+.stroke-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.color-swatch {
+  width: 33px;
+  height: 33px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.13s, border-color 0.13s;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.color-swatch:hover { transform: scale(1.12); }
+
+.color-swatch.active { border-color: var(--accent); }
+
+.color-swatch.active::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.65);
+}
+
+.bg-grid {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.bg-swatch {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.13s, border-color 0.13s;
+  flex-shrink: 0;
+}
+
+.bg-swatch:hover { transform: scale(1.07); }
+.bg-swatch.active { border-color: var(--accent); }
+
+/* ─── Save Panel ───────────────────────────────────────────────────────────── */
+.save-options { display: flex; flex-direction: column; gap: 10px; }
+
+.save-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 16px;
+  border-radius: 12px;
+  border: 1.5px solid var(--panel-border);
+  background: rgba(255,255,255,0.03);
+  cursor: pointer;
+  transition: background 0.13s, border-color 0.13s;
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+  width: 100%;
+}
+
+.save-btn:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: var(--accent-border);
+}
+
+.save-btn-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  background: var(--accent-glow);
+  border: 1px solid rgba(77,158,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.save-btn-copy strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 2px;
+  color: var(--text);
+}
+
+.save-btn-copy span {
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+/* ─── Logo / GitHub Panel ──────────────────────────────────────────────────── */
+.github-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 16px;
+  border-radius: 12px;
+  border: 1.5px solid var(--panel-border);
+  background: rgba(255,255,255,0.03);
+  cursor: pointer;
+  transition: background 0.13s, border-color 0.13s;
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+  width: 100%;
+  text-decoration: none;
+}
+
+.github-link:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: var(--accent-border);
+}
+
+.github-link-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  background: var(--accent-glow);
+  border: 1px solid rgba(77,158,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.github-link-copy strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 2px;
+  color: var(--text);
+}
+
+.github-link-copy span {
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.logo-panel-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.logo-panel-brand-name {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+.logo-panel-brand-tag {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  margin-top: 1px;
+}
+#toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  opacity: 0;
+  background: rgba(22, 22, 26, 0.97);
+  color: var(--text);
+  padding: 9px 18px;
+  border-radius: 100px;
+  font-size: 12.5px;
+  font-weight: 500;
+  border: 1px solid rgba(255,255,255,0.09);
+  pointer-events: none;
+  z-index: 999;
+  white-space: nowrap;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+}
+
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <header id="toolbar">
+    <div id="logo" role="button" aria-label="Mirrora menu" tabindex="0">
+      <svg id="logo-svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <rect x="1" y="1" width="7.8" height="7.8" rx="1.6" fill="rgba(77,158,255,0.28)" stroke="#4D9EFF" stroke-width="1.1"/>
+        <rect x="11.2" y="1" width="7.8" height="7.8" rx="1.6" fill="rgba(77,158,255,0.10)" stroke="rgba(77,158,255,0.35)" stroke-width="1.1"/>
+        <rect x="1" y="11.2" width="7.8" height="7.8" rx="1.6" fill="rgba(77,158,255,0.10)" stroke="rgba(77,158,255,0.35)" stroke-width="1.1"/>
+        <rect x="11.2" y="11.2" width="7.8" height="7.8" rx="1.6" fill="rgba(77,158,255,0.10)" stroke="rgba(77,158,255,0.35)" stroke-width="1.1"/>
+      </svg>
+      <span id="logo-wordmark">Mirrora</span>
+    </div>
+
+    <div class="sep"></div>
+
+    <button class="tb-btn" id="btn-undo" title="Undo (Ctrl+Z)">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1.5 5.5h8a4 4 0 1 1 0 8H5"/>
+        <polyline points="4,2.5 1.5,5.5 4,8.5"/>
+      </svg>
+      <span class="tb-label">Undo</span>
+    </button>
+
+    <button class="tb-btn" id="btn-redo" title="Redo (Ctrl+Shift+Z)">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M13.5 5.5H5.5a4 4 0 1 0 0 8H10"/>
+        <polyline points="11,2.5 13.5,5.5 11,8.5"/>
+      </svg>
+      <span class="tb-label">Redo</span>
+    </button>
+
+    <button class="tb-btn" id="btn-clear" title="Clear canvas">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="1,3.5 14,3.5"/>
+        <path d="M4.5 3.5V2h6v1.5"/>
+        <path d="M2.2 3.5l.6 9a1 1 0 0 0 1 .9h7.4a1 1 0 0 0 1-.9l.6-9"/>
+        <line x1="5.5" y1="6.5" x2="5.5" y2="10.5"/>
+        <line x1="9.5" y1="6.5" x2="9.5" y2="10.5"/>
+      </svg>
+      <span class="tb-label">Clear</span>
+    </button>
+
+    <div class="sep"></div>
+
+    <div class="mode-pill" role="group" aria-label="Drawing mode">
+      <button class="mode-btn" id="btn-mode-focus">Focus</button>
+      <button class="mode-btn active" id="btn-mode-symmetry">Symmetry</button>
+    </div>
+
+    <div class="spacer"></div>
+
+    <button class="tb-btn" id="btn-brush" title="Brush size">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round">
+        <circle cx="7.5" cy="7.5" r="3.5"/>
+        <line x1="7.5" y1="0.5" x2="7.5" y2="2.5"/>
+        <line x1="7.5" y1="12.5" x2="7.5" y2="14.5"/>
+        <line x1="0.5" y1="7.5" x2="2.5" y2="7.5"/>
+        <line x1="12.5" y1="7.5" x2="14.5" y2="7.5"/>
+      </svg>
+      <span class="tb-label">Brush</span>
+    </button>
+
+    <button class="tb-btn" id="btn-color" title="Colors">
+      <div class="color-dot" id="color-dot"></div>
+      <span class="tb-label">Colors</span>
+    </button>
+
+    <button class="tb-btn" id="btn-save" title="Save as PNG">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="7.5" y1="1" x2="7.5" y2="10"/>
+        <polyline points="4,7 7.5,10.5 11,7"/>
+        <path d="M1 12.5v1a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-1"/>
+      </svg>
+      <span class="tb-label">Save</span>
+    </button>
+
+  </header>
+
+  <div id="canvas-wrap">
+    <div id="bg-layer"></div>
+    <canvas id="guide-canvas" class="visible"></canvas>
+    <canvas id="main-canvas"></canvas>
+  </div>
+
+</div>
+
+<div class="overlay" id="ov-brush" role="dialog" aria-label="Brush size">
+  <div class="panel" id="panel-brush">
+    <div class="panel-heading">Brush Size</div>
+    <div class="brush-grid" id="brush-grid"></div>
+  </div>
+</div>
+
+<div class="overlay" id="ov-color" role="dialog" aria-label="Colors">
+  <div class="panel" id="panel-color">
+    <div class="color-section">
+      <div class="color-section-label">Stroke Color</div>
+      <div class="stroke-grid" id="stroke-grid"></div>
+    </div>
+    <div class="color-section">
+      <div class="color-section-label">Canvas Background</div>
+      <div class="bg-grid" id="bg-grid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="ov-save" role="dialog" aria-label="Export">
+  <div class="panel" id="panel-save">
+    <div class="panel-heading">Export Artwork</div>
+    <div class="save-options">
+      <button class="save-btn" id="save-with-bg">
+        <div class="save-btn-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1.5" y="1.5" width="15" height="15" rx="2.5" fill="rgba(77,158,255,0.15)" stroke="currentColor"/>
+            <line x1="9" y1="5" x2="9" y2="11.5"/>
+            <polyline points="6,9 9,12 12,9"/>
+          </svg>
+        </div>
+        <div class="save-btn-copy">
+          <strong>With Background</strong>
+          <span>Includes the canvas background color</span>
+        </div>
+      </button>
+
+      <button class="save-btn" id="save-no-bg">
+        <div class="save-btn-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1.5" y="1.5" width="15" height="15" rx="2.5" stroke-dasharray="3.8 2.2"/>
+            <line x1="9" y1="5" x2="9" y2="11.5"/>
+            <polyline points="6,9 9,12 12,9"/>
+          </svg>
+        </div>
+        <div class="save-btn-copy">
+          <strong>Without Background</strong>
+          <span>Transparent PNG — strokes only</span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<div class="overlay" id="ov-logo" role="dialog" aria-label="Mirrora menu">
+  <div class="panel" id="panel-logo">
+    <div class="logo-panel-brand">
+      <svg width="26" height="26" viewBox="0 0 20 20" fill="none">
+        <rect x="1" y="1" width="7.8" height="7.8" rx="1.6" fill="rgba(77,158,255,0.28)" stroke="#4D9EFF" stroke-width="1.1"/>
+        <rect x="11.2" y="1" width="7.8" height="7.8" rx="1.6" fill="rgba(77,158,255,0.10)" stroke="rgba(77,158,255,0.35)" stroke-width="1.1"/>
+        <rect x="1" y="11.2" width="7.8" height="7.8" rx="1.6" fill="rgba(77,158,255,0.10)" stroke="rgba(77,158,255,0.35)" stroke-width="1.1"/>
+        <rect x="11.2" y="11.2" width="7.8" height="7.8" rx="1.6" fill="rgba(77,158,255,0.10)" stroke="rgba(77,158,255,0.35)" stroke-width="1.1"/>
+      </svg>
+      <div>
+        <div class="logo-panel-brand-name">Mirrora</div>
+        <div class="logo-panel-brand-tag">Symmetry Drawing</div>
+      </div>
+    </div>
+    <a class="github-link" href="#" id="link-github" target="_blank" rel="noopener noreferrer">
+      <div class="github-link-icon">
+        <!-- GitHub mark icon -->
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.083-.729.083-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23A11.51 11.51 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.29-1.552 3.297-1.23 3.297-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+      </div>
+      <div class="github-link-copy">
+        <strong>View on GitHub</strong>
+        <span>Source code &amp; contribute to the project</span>
+      </div>
+    </a>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONSTANTS & STATE
+═══════════════════════════════════════════════════════════════════════════ */
+
+const BRUSH_SIZES = [3, 5, 8, 12, 20];
+const STROKE_COLORS = ['#FFFFFF', '#000000', '#FF3B30', '#FF9500', '#FFD60A', '#32D74B', '#64D2FF', '#0A84FF', '#BF5AF2', '#FF2D55', '#30D5C8', '#FFBFA3'];
+const BG_COLORS = ['#000000', '#121212', '#0B1020', '#1A1026', '#FFFFFF'];
+const MIN_PT_DIST_SQ = 4;
+
+const S = {
+  mode: 'symmetry',   // 'focus' | 'symmetry'
+  color: '#FFFFFF',
+  brushSize: 5,
+  bgColor: '#000000',
+  isDrawing: false,
+  currentPts: [],
+  strokes: [],
+  undone: [],
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CANVAS SETUP
+═══════════════════════════════════════════════════════════════════════════ */
+
+const mainCanvas  = document.getElementById('main-canvas');
+const guideCanvas = document.getElementById('guide-canvas');
+const bgLayer     = document.getElementById('bg-layer');
+const ctx  = mainCanvas.getContext('2d');
+const gCtx = guideCanvas.getContext('2d');
+
+const offscreen = document.createElement('canvas');
+const offCtx    = offscreen.getContext('2d');
+let prevW = 0, prevH = 0;
+
+function resizeAll() {
+  const wrap = document.getElementById('canvas-wrap');
+  const W = wrap.clientWidth;
+  const H = wrap.clientHeight;
+  if (!W || !H || (W === prevW && H === prevH)) return;
+
+  if (prevW > 0 && prevH > 0) {
+    const sx = W / prevW;
+    const sy = H / prevH;
+    if (sx !== 1 || sy !== 1) {
+      const scaleStroke = s => ({
+        ...s,
+        pts: s.pts.map(p => ({ x: p.x * sx, y: p.y * sy }))
+      });
+      S.strokes = S.strokes.map(scaleStroke);
+      S.undone  = S.undone.map(scaleStroke);
+    }
+  }
+
+  prevW = W; prevH = H;
+  mainCanvas.width = guideCanvas.width = offscreen.width = W;
+  mainCanvas.height = guideCanvas.height = offscreen.height = H;
+
+  rebuildOffscreen();
+  renderFrame();
+  drawGuide();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RENDERING LOGIC
+═══════════════════════════════════════════════════════════════════════════ */
+
+function applyStyle(c, color, size) {
+  c.strokeStyle  = color;
+  c.fillStyle    = color;
+  c.lineWidth    = size;
+  c.lineCap      = 'round';
+  c.lineJoin     = 'round';
+  c.globalAlpha  = 1;
+  c.globalCompositeOperation = 'source-over';
+}
+
+function tracePath(c, pts) {
+  if (!pts.length) return;
+  if (pts.length === 1) {
+    c.beginPath();
+    c.arc(pts[0].x, pts[0].y, c.lineWidth / 2, 0, Math.PI * 2);
+    c.fill();
+    return;
+  }
+  c.beginPath();
+  c.moveTo(pts[0].x, pts[0].y);
+  if (pts.length === 2) {
+    c.lineTo(pts[1].x, pts[1].y);
+    c.stroke();
+    return;
+  }
+  for (let i = 1; i < pts.length - 1; i++) {
+    const mx = (pts[i].x + pts[i + 1].x) * 0.5;
+    const my = (pts[i].y + pts[i + 1].y) * 0.5;
+    c.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
+  }
+  const last = pts[pts.length - 1];
+  c.lineTo(last.x, last.y);
+  c.stroke();
+}
+
+function getSymPts(pts, W, H) {
+  return [
+    pts,
+    pts.map(p => ({ x: W - p.x, y: p.y })),
+    pts.map(p => ({ x: p.x, y: H - p.y })),
+    pts.map(p => ({ x: W - p.x, y: H - p.y })),
+  ];
+}
+
+function renderStrokeOn(c, stroke, sym) {
+  const W = c.canvas.width;
+  const H = c.canvas.height;
+  applyStyle(c, stroke.color, stroke.size);
+  if (sym) {
+    for (const pts of getSymPts(stroke.pts, W, H)) tracePath(c, pts);
+  } else {
+    tracePath(c, stroke.pts);
+  }
+}
+
+function rebuildOffscreen() {
+  const W = offscreen.width, H = offscreen.height;
+  offCtx.resetTransform();
+  offCtx.clearRect(0, 0, W, H);
+
+  if (S.mode === 'focus') offCtx.scale(2, 2);
+
+  const sym = S.mode === 'symmetry';
+  for (const stroke of S.strokes) renderStrokeOn(offCtx, stroke, sym);
+}
+
+function renderFrame() {
+  const W = mainCanvas.width, H = mainCanvas.height;
+  ctx.resetTransform();
+  ctx.clearRect(0, 0, W, H);
+  
+  ctx.drawImage(offscreen, 0, 0);
+
+  if (S.mode === 'focus') ctx.scale(2, 2);
+
+  if (S.currentPts.length) {
+    renderStrokeOn(ctx, { pts: S.currentPts, color: S.color, size: S.brushSize }, S.mode === 'symmetry');
+  }
+}
+
+function drawGuide() {
+  const W = guideCanvas.width, H = guideCanvas.height;
+  gCtx.clearRect(0, 0, W, H);
+  if (S.mode !== 'symmetry') return;
+
+  gCtx.save();
+  gCtx.strokeStyle = 'rgba(128,128,128,0.55)';
+  gCtx.lineWidth = 1;
+  gCtx.setLineDash([6, 7]);
+  gCtx.beginPath();
+  gCtx.moveTo(W / 2, 0); gCtx.lineTo(W / 2, H);
+  gCtx.stroke();
+  gCtx.beginPath();
+  gCtx.moveTo(0, H / 2); gCtx.lineTo(W, H / 2);
+  gCtx.stroke();
+  gCtx.restore();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   POINTER INPUT
+═══════════════════════════════════════════════════════════════════════════ */
+
+function ptFromEvent(e) {
+  const r = mainCanvas.getBoundingClientRect();
+  let x = e.clientX - r.left;
+  let y = e.clientY - r.top;
+
+  if (S.mode === 'focus') {
+    x = x / 2;
+    y = y / 2;
+  } else if (S.mode === 'symmetry') {
+    x = Math.max(0, Math.min(x, mainCanvas.width  / 2));
+    y = Math.max(0, Math.min(y, mainCanvas.height / 2));
+  }
+  return { x, y };
+}
+
+function distSq(a, b) {
+  const dx = a.x - b.x, dy = a.y - b.y;
+  return dx * dx + dy * dy;
+}
+
+mainCanvas.addEventListener('pointerdown', e => {
+  if (e.button !== 0 && e.pointerType === 'mouse') return;
+
+  if (S.mode === 'symmetry') {
+    const r = mainCanvas.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    const y = e.clientY - r.top;
+    if (x > mainCanvas.width / 2 || y > mainCanvas.height / 2) return;
+  }
+
+  e.preventDefault();
+  mainCanvas.setPointerCapture(e.pointerId);
+  S.isDrawing = true;
+  S.currentPts = [ptFromEvent(e)];
+  renderFrame();
+});
+
+mainCanvas.addEventListener('pointermove', e => {
+  if (!S.isDrawing) return;
+  e.preventDefault();
+  const pt = ptFromEvent(e);
+  const last = S.currentPts[S.currentPts.length - 1];
+  if (distSq(pt, last) < MIN_PT_DIST_SQ) return;
+  S.currentPts.push(pt);
+  renderFrame();
+});
+
+mainCanvas.addEventListener('pointerup', e => {
+  if (!S.isDrawing) return;
+  e.preventDefault();
+  S.isDrawing = false;
+  commitStroke();
+});
+
+mainCanvas.addEventListener('pointercancel', () => {
+  S.isDrawing = false;
+  S.currentPts = [];
+  renderFrame();
+});
+
+function commitStroke() {
+  if (!S.currentPts.length) return;
+  const stroke = { pts: [...S.currentPts], color: S.color, size: S.brushSize };
+  S.strokes.push(stroke);
+  S.undone = []; 
+
+  offCtx.resetTransform();
+  if (S.mode === 'focus') offCtx.scale(2, 2);
+  renderStrokeOn(offCtx, stroke, S.mode === 'symmetry');
+
+  S.currentPts = [];
+  renderFrame();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONTROLS
+═══════════════════════════════════════════════════════════════════════════ */
+
+function undo() {
+  if (!S.strokes.length) { showToast('Nothing to undo'); return; }
+  S.undone.push(S.strokes.pop());
+  rebuildOffscreen(); 
+  renderFrame();
+  showToast('Undo');
+}
+
+function redo() {
+  if (!S.undone.length) { showToast('Nothing to redo'); return; }
+  const stroke = S.undone.pop();
+  S.strokes.push(stroke);
+  offCtx.resetTransform();
+  if (S.mode === 'focus') offCtx.scale(2, 2);
+  renderStrokeOn(offCtx, stroke, S.mode === 'symmetry');
+  renderFrame();
+  showToast('Redo');
+}
+
+function clearCanvas() {
+  if (!S.strokes.length && !S.currentPts.length) return;
+  S.strokes = [];
+  S.undone  = [];
+  S.currentPts = [];
+  offCtx.resetTransform();
+  offCtx.clearRect(0, 0, offscreen.width, offscreen.height);
+  renderFrame();
+  showToast('Canvas cleared');
+}
+
+function setMode(mode) {
+  if (S.mode === mode) return;
+  S.mode = mode;
+  const isSym = mode === 'symmetry';
+  document.getElementById('btn-mode-focus').classList.toggle('active', !isSym);
+  document.getElementById('btn-mode-symmetry').classList.toggle('active', isSym);
+  document.getElementById('guide-canvas').classList.toggle('visible', isSym);
+  rebuildOffscreen();
+  renderFrame();
+  drawGuide();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UI PANELS & OVERLAYS
+═══════════════════════════════════════════════════════════════════════════ */
+
+let activeOverlay = null;
+
+function openOverlay(id) {
+  if (activeOverlay === id) { closeOverlay(); return; }
+  closeOverlay();
+  document.getElementById(id).classList.add('open');
+  activeOverlay = id;
+}
+
+function closeOverlay() {
+  if (!activeOverlay) return;
+  document.getElementById(activeOverlay).classList.remove('open');
+  activeOverlay = null;
+}
+
+document.querySelectorAll('.overlay').forEach(el => {
+  el.addEventListener('pointerdown', e => {
+    if (e.target === el) closeOverlay();
+  });
+});
+
+function buildBrushPanel() {
+  const grid = document.getElementById('brush-grid');
+  const maxSize = BRUSH_SIZES[BRUSH_SIZES.length - 1];
+  BRUSH_SIZES.forEach(size => {
+    const item = document.createElement('div');
+    item.className = 'brush-item' + (size === S.brushSize ? ' active' : '');
+    item.setAttribute('role', 'button');
+    const dotArea = document.createElement('div');
+    dotArea.className = 'brush-dot-area';
+    dotArea.style.height = (maxSize + 8) + 'px';
+    const circle = document.createElement('div');
+    circle.className = 'brush-circle';
+    circle.style.cssText = `width:${size}px;height:${size}px;`;
+    const label = document.createElement('div');
+    label.className = 'brush-px';
+    label.textContent = size + 'px';
+    dotArea.appendChild(circle);
+    item.appendChild(dotArea);
+    item.appendChild(label);
+    item.addEventListener('click', () => {
+      S.brushSize = size;
+      grid.querySelectorAll('.brush-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      closeOverlay();
+    });
+    grid.appendChild(item);
+  });
+}
+
+function buildColorPanel() {
+  const strokeGrid = document.getElementById('stroke-grid');
+  STROKE_COLORS.forEach(color => {
+    const sw = document.createElement('div');
+    sw.className = 'color-swatch' + (color === S.color ? ' active' : '');
+    sw.style.background = color;
+    sw.setAttribute('role', 'button');
+    if (color === '#000000') sw.style.boxShadow = 'inset 0 0 0 1.5px rgba(255,255,255,0.16)';
+    sw.addEventListener('click', () => {
+      S.color = color;
+      document.getElementById('color-dot').style.background = color;
+      strokeGrid.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+      sw.classList.add('active');
+      closeOverlay();
+    });
+    strokeGrid.appendChild(sw);
+  });
+
+  const bgGrid = document.getElementById('bg-grid');
+  BG_COLORS.forEach(color => {
+    const sw = document.createElement('div');
+    sw.className = 'bg-swatch' + (color === S.bgColor ? ' active' : '');
+    sw.style.background = color;
+    sw.setAttribute('role', 'button');
+    const isDark = ['#000000','#121212','#0B1020','#1A1026'].includes(color);
+    if (isDark) sw.style.boxShadow = 'inset 0 0 0 1.5px rgba(255,255,255,0.12)';
+    sw.addEventListener('click', () => {
+      S.bgColor = color;
+      bgLayer.style.background = color;
+      bgGrid.querySelectorAll('.bg-swatch').forEach(s => s.classList.remove('active'));
+      sw.classList.add('active');
+      closeOverlay();
+    });
+    bgGrid.appendChild(sw);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EXPORT & TOAST
+═══════════════════════════════════════════════════════════════════════════ */
+
+function exportPNG(withBg) {
+  const W = mainCanvas.width, H = mainCanvas.height;
+  const ec  = document.createElement('canvas');
+  const ectx = ec.getContext('2d');
+  ec.width  = W;
+  ec.height = H;
+
+  if (withBg) {
+    ectx.fillStyle = S.bgColor;
+    ectx.fillRect(0, 0, W, H);
+  }
+  ectx.drawImage(mainCanvas, 0, 0);
+
+  ec.toBlob(blob => {
+    if (!blob) { showToast('Export failed'); return; }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'mirrora-' + Date.now() + '.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Saved ✓');
+  }, 'image/png');
+  closeOverlay();
+}
+
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1700);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EVENT BINDING & PREVENTION
+═══════════════════════════════════════════════════════════════════════════ */
+
+document.getElementById('btn-undo').addEventListener('click', undo);
+document.getElementById('btn-redo').addEventListener('click', redo);
+document.getElementById('btn-clear').addEventListener('click', clearCanvas);
+document.getElementById('btn-mode-focus').addEventListener('click', () => setMode('focus'));
+document.getElementById('btn-mode-symmetry').addEventListener('click', () => setMode('symmetry'));
+document.getElementById('btn-brush').addEventListener('click', () => openOverlay('ov-brush'));
+document.getElementById('btn-color').addEventListener('click', () => openOverlay('ov-color'));
+document.getElementById('btn-save').addEventListener('click', () => openOverlay('ov-save'));
+document.getElementById('save-with-bg').addEventListener('click', () => exportPNG(true));
+document.getElementById('save-no-bg').addEventListener('click', () => exportPNG(false));
+
+// Logo menu
+const logoEl = document.getElementById('logo');
+logoEl.addEventListener('click', () => openOverlay('ov-logo'));
+logoEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openOverlay('ov-logo'); }
+});
+document.getElementById('link-github').addEventListener('click', () => closeOverlay());
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeOverlay(); return; }
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+    if ((e.key === 'z' && e.shiftKey) || e.key === 'y') { e.preventDefault(); redo(); return; }
+  }
+});
+
+// TOUCH SCROLL PREVENTION: Block rubber-banding and double-tap zoom
+document.addEventListener('touchmove', e => {
+  if (e.target.closest('.panel')) return; // Allow internal panel scrolling
+  e.preventDefault();
+}, { passive: false });
+
+document.addEventListener('touchstart', e => {
+  if (e.target.closest('.panel, .overlay')) return;
+  if (e.target === mainCanvas || e.target === bgLayer || e.target === guideCanvas) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+let resizeRaf;
+window.addEventListener('resize', () => {
+  cancelAnimationFrame(resizeRaf);
+  resizeRaf = requestAnimationFrame(resizeAll);
+});
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => {
+    cancelAnimationFrame(resizeRaf);
+    resizeRaf = requestAnimationFrame(resizeAll);
+  });
+}
+
+function init() {
+  buildBrushPanel();
+  buildColorPanel();
+  document.getElementById('color-dot').style.background = S.color;
+  bgLayer.style.background = S.bgColor;
+  document.getElementById('guide-canvas').classList.add('visible');
+  document.getElementById('btn-mode-symmetry').classList.add('active');
+  resizeAll();
+}
+
+init();
+</script>
+</body>
+</html>
